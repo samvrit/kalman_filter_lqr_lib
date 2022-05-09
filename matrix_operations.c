@@ -153,7 +153,7 @@ void identity(float matrix[N_STATES][N_STATES])
 
 // Function to get cofactor of A[p][q] in temp[][]. n is current
 // dimension of A[][]
-static void get_cofactor(float A[N_STATES][N_STATES], float temp[N_STATES][N_STATES], int p, int q, int n)
+static void get_cofactor(const float A[N_STATES][N_STATES], float temp[N_STATES][N_STATES], int p, int q, int n)
 {
     int i = 0, j = 0;
  
