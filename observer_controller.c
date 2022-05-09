@@ -2,7 +2,6 @@
 #include "observer_controller.h"
 #include "matrix_operations.h"
 
-static float x_hat[N_STATES] = {0.0f};
 static float L[N_STATES][N_STATES] = {{0.0f}};
 static float F[N_STATES][N_STATES] = {{0.0f}};
 static float F_transpose[N_STATES][N_STATES] = {{0.0f}};
@@ -14,7 +13,7 @@ static float P[N_STATES][N_STATES] = {{0.0f}};
 static float A_minus_BK[N_STATES][N_STATES] = {{0.0f}};
 static float I[N_STATES][N_STATES] = {{0.0f}};
 
-void observer_init(const float timestep)
+void observer_init(float x_hat[N_STATES], const float timestep)
 {
 	vector_initialize(x_hat, 0.0f);
 	
@@ -51,7 +50,7 @@ void observer_init(const float timestep)
 	matrix_scale((const float (*)[N_STATES])A_minus_BK, timestep, A_minus_BK);
 }
 
-void observer_step(const float measurement[N_STATES], const bool enable, float x_hat_output[N_STATES])
+void observer_step(const float measurement[N_STATES], const bool enable, float x_hat[N_STATES])
 {
 	// P = (F * P * F') + Q
 	float F_P[N_STATES][N_STATES] = {{0.0f}};
@@ -117,7 +116,6 @@ void observer_step(const float measurement[N_STATES], const bool enable, float x
 	{
 		x_hat[i] += prediction_plus_correction[i];
 		x_hat[i] = enable ? x_hat[i] : 0.0f;
-		x_hat_output[i] = x_hat[i];
 	}
 }
 

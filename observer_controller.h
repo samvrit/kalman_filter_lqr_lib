@@ -15,7 +15,7 @@ extern const float R;
 
 extern float control_output_process(const float computed_output, const float x_hat[N_STATES], const float timestep);
 
-void observer_init(const float timestep);
+void observer_init(float x_hat[N_STATES], const float timestep);
 
 void observer_step(const float measurement[N_STATES], const bool enable, float x_hat_output[N_STATES]);
 
