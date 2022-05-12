@@ -2,16 +2,22 @@
 #include "observer_controller.h"
 #include "matrix_operations.h"
 
-static float L[N_STATES][N_STATES] = {{0.0f}};
-static float F[N_STATES][N_STATES] = {{0.0f}};
-static float F_transpose[N_STATES][N_STATES] = {{0.0f}};
-static float Q_matrix[N_STATES][N_STATES] = {{0.0f}};
-static float R_matrix[N_STATES][N_STATES] = {{0.0f}};
-static float B_transpose[N_STATES][N_STATES] = {{0.0f}};
-static float C_transpose[N_STATES][N_STATES] = {{0.0f}};
-static float P[N_STATES][N_STATES] = {{0.0f}};
-static float A_minus_BK[N_STATES][N_STATES] = {{0.0f}};
-static float I[N_STATES][N_STATES] = {{0.0f}};
+#ifndef UNIT_TEST
+#define STATIC static
+#else
+#define STATIC
+#endif
+
+STATIC float L[N_STATES][N_STATES] = {{0.0f}};
+STATIC float F[N_STATES][N_STATES] = {{0.0f}};
+STATIC float F_transpose[N_STATES][N_STATES] = {{0.0f}};
+STATIC float Q_matrix[N_STATES][N_STATES] = {{0.0f}};
+STATIC float R_matrix[N_STATES][N_STATES] = {{0.0f}};
+STATIC float B_transpose[N_STATES][N_STATES] = {{0.0f}};
+STATIC float C_transpose[N_STATES][N_STATES] = {{0.0f}};
+STATIC float P[N_STATES][N_STATES] = {{0.0f}};
+STATIC float A_minus_BK[N_STATES][N_STATES] = {{0.0f}};
+STATIC float I[N_STATES][N_STATES] = {{0.0f}};
 
 void observer_init(float x_hat[N_STATES], const float timestep)
 {
@@ -40,7 +46,8 @@ void observer_init(float x_hat[N_STATES], const float timestep)
 	float B_B_transpose[N_STATES][N_STATES] = {{0.0f}};
 	matrix_matrix_multiply(B, (const float (*)[N_STATES])B_transpose, B_B_transpose);
 	
-	matrix_scale((const float (*)[N_STATES])B_B_transpose, Q*Q, Q_matrix);
+	matrix_scale((const float (*)[N_STATES])B_B_transpose, Q, Q_matrix);
+	matrix_scale((const float (*)[N_STATES])Q_matrix, timestep * timestep, Q_matrix);
 	matrix_scale(I, R, R_matrix);
 	
 	float B_K[N_STATES][N_STATES] = {{0.0f}};

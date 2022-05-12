@@ -1,3 +1,4 @@
+#include <math.h>
 #include "matrix_operations.h"
 
 void matrix_vector_multiply(const float A[N_STATES][N_STATES], const float x[N_STATES], float output[N_STATES])
@@ -145,6 +146,22 @@ void identity(float matrix[N_STATES][N_STATES])
 			matrix[i][j] = (i == j) ? 1.0f : 0.0f;
 		}
 	}
+}
+
+bool matrix_equal_check(float matrix1[N_STATES][N_STATES], float matrix2[N_STATES][N_STATES], const float tolerance)
+{
+	bool equal = true;
+	for (int i = 0; i < N_STATES; i++)
+	{
+		for (int j = 0; j < N_STATES; j++)
+		{
+			if ( fabs(matrix1[i][j] - matrix2[i][j]) > tolerance )
+			{
+				equal = false;
+			}
+		}
+	}
+	return equal;
 }
 
 /*-------------------------- Inverse functions -----------------------------*/

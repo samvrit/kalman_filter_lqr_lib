@@ -2,6 +2,7 @@
 #define MATRIX_OPERATIONS_H_
 
 #include <stdbool.h>
+#include <stdbool.h>
 #include "project_specific.h"
 
 void matrix_vector_multiply(const float A[N_STATES][N_STATES], const float x[N_STATES], float output[N_STATES]);
@@ -31,6 +32,8 @@ void vector_initialize(float vector[N_STATES], const float init_val);
 void matrix_initialize(float matrix[N_STATES][N_STATES], const float init_val);
 
 void identity(float matrix[N_STATES][N_STATES]);
+
+bool matrix_equal_check(float matrix1[N_STATES][N_STATES], float matrix2[N_STATES][N_STATES], const float tolerance);
 
 bool matrix_inverse(const float A[N_STATES][N_STATES], float inverse[N_STATES][N_STATES]);
 
