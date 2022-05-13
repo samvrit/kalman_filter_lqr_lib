@@ -57,7 +57,7 @@ void observer_init(float x_hat[N_STATES], const float timestep)
 	matrix_scale(A_minus_BK, timestep, A_minus_BK);
 }
 
-void observer_step(const float measurement[N_STATES], const bool enable, float x_hat[N_STATES])
+void covariance_matrix_step(void)
 {
 	// P = (F * P * F') + Q
 	float F_P[N_STATES][N_STATES] = {{0.0f}};
@@ -98,8 +98,11 @@ void observer_step(const float measurement[N_STATES], const bool enable, float x
 	matrix_matrix_multiply(I_minus_L_C, P, P_next);
 	
 	matrix_assign(P_next, P);
-	
-	// x_hat_dot = (A-B*K)*x_hat + L*(y - C*x_hat)
+}	
+
+void observer_step(const float measurement[N_STATES], const bool enable, float x_hat[N_STATES])
+{	
+	// x_hat[k] = x_hat[k-1] + Ts * ((A-B*K)*x_hat[k-1] + L*(y - C*x_hat[k-1]))
 	
 	// error = y - C * x_hat_prev
 	float C_times_x_hat[N_STATES] = {0.0f};
