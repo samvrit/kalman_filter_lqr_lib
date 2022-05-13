@@ -45,8 +45,7 @@ int main(void)
 	
 	for(int sim_step = 0; sim_step < N; sim_step++)
 	{
-		float measurement[N_STATES] = {0.0f};
-		observer_step(measurement, true, x_hat);
+		covariance_matrix_step();
 	}
 	
 	const bool equal = matrix_equal_check(L, L_expected, tolerance);
