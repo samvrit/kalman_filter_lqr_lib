@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdio.h>
 #include "observer_controller.h"
 #include "matrix_operations.h"
 
@@ -80,7 +81,13 @@ void covariance_matrix_step(void)
 	
 	// L = P * C' * S_inverse
 	float S_inverse[N_STATES][N_STATES] = {{0.0f}};
-	matrix_inverse(S, S_inverse);
+	const bool cholesky_inverse = matrix_inverse_cholesky(S, S_inverse);
+	
+	// if cholesky decomposition fails because of numerical error, use the general inversion technique
+	if (!cholesky_inverse)
+	{
+		matrix_inverse(S, S_inverse);
+	}
 	
 	float P_C_transpose[N_STATES][N_STATES] = {{0.0f}};
 	matrix_matrix_multiply(P, C_transpose, P_C_transpose);
