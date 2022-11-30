@@ -4,7 +4,7 @@
 #include "matrix_operations.h"
 
 #ifndef UNIT_TEST
-#define STATIC static
+#define STATIC
 #else
 #define STATIC
 #endif
@@ -58,8 +58,10 @@ void observer_init(float x_hat[N_STATES], const float timestep)
 	matrix_scale(A_minus_BK, timestep, A_minus_BK);
 }
 
-void covariance_matrix_step(void)
+bool covariance_matrix_step(void)
 {
+	bool inverse_valid = true;
+
 	// P = (F * P * F') + Q
 	float F_P[N_STATES][N_STATES] = {{0.0f}};
 	matrix_matrix_multiply(F, P, F_P);
@@ -81,13 +83,8 @@ void covariance_matrix_step(void)
 	
 	// L = P * C' * S_inverse
 	float S_inverse[N_STATES][N_STATES] = {{0.0f}};
-	const bool cholesky_inverse = matrix_inverse_cholesky(S, S_inverse);
 	
-	// if cholesky decomposition fails because of numerical error, use the general inversion technique
-	if (!cholesky_inverse)
-	{
-		matrix_inverse(S, S_inverse);
-	}
+	inverse_valid = matrix_inverse_cholesky(S, S_inverse);
 	
 	float P_C_transpose[N_STATES][N_STATES] = {{0.0f}};
 	matrix_matrix_multiply(P, C_transpose, P_C_transpose);
@@ -105,7 +102,9 @@ void covariance_matrix_step(void)
 	matrix_matrix_multiply(I_minus_L_C, P, P_next);
 	
 	matrix_assign(P_next, P);
-}	
+
+	return inverse_valid;
+}
 
 void observer_step(const float measurement[N_STATES], const bool enable, float x_hat[N_STATES])
 {	

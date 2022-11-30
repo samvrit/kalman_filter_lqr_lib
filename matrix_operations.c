@@ -157,7 +157,7 @@ bool matrix_equal_check(float matrix1[N_STATES][N_STATES], float matrix2[N_STATE
 	{
 		for (int j = 0; j < N_STATES; j++)
 		{
-			if ( fabs(matrix1[i][j] - matrix2[i][j]) > tolerance )
+			if ( fabsf(matrix1[i][j] - matrix2[i][j]) > tolerance )
 			{
 				equal = false;
 			}
@@ -183,14 +183,24 @@ static bool cholesky_decomposition(const float A[N_STATES][N_STATES], float R[N_
 			}
 			if (i == j)
 			{
-				R[i][i] = sqrt(MAX(A[i][i] - sum, 0.0f));
+				const float diff = A[i][i] - sum;
+				if (diff < 0.0f)
+				{
+					result = false;
+					break;
+				}
+				else
+				{
+					R[i][i] = sqrtf(diff);
+				}
+				
 			}
 			else
 			{
 				if (R[i][i] == 0.0f)
 				{
 					result = false;
-					R[i][j] = 0.0f;
+					break;
 				}
 				else
 				{
@@ -216,8 +226,8 @@ static bool upper_triangular_inverse(const float R[N_STATES][N_STATES], const fl
 			}
 			if (R[i][i] == 0.0f)
 			{
-				A_inv[i][j] = 0.0f;
 				result = false;
+				break;
 			}
 			else
 			{
