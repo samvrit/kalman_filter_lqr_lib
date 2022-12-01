@@ -38,24 +38,33 @@ void observer_init(float x_hat[N_STATES], const float timestep)
 	
 	// Discretize state transition matrix, ie., F = I + dt*A
 	matrix_scale(A, timestep, F);
-	matrix_sum(F, I, F);
+	matrix_sum((const float (*)[N_STATES])F, 
+			   (const float (*)[N_STATES])I, 
+			   F);
 	
-	matrix_transpose(F, F_transpose);
-	matrix_transpose(B, B_transpose);
-	matrix_transpose(C, C_transpose);
+	matrix_transpose((const float (*)[N_STATES])F, F_transpose);
+	matrix_transpose((const float (*)[N_STATES])B, B_transpose);
+	matrix_transpose((const float (*)[N_STATES])C, C_transpose);
 	
 	float B_B_transpose[N_STATES][N_STATES] = {{0.0f}};
-	matrix_matrix_multiply(B, B_transpose, B_B_transpose);
+	matrix_matrix_multiply((const float (*)[N_STATES])B, 
+						   (const float (*)[N_STATES])B_transpose, 
+						   B_B_transpose);
 	
-	matrix_scale(B_B_transpose, Q, Q_matrix);
-	matrix_scale(Q_matrix, timestep * timestep, Q_matrix);
-	matrix_scale(I, R, R_matrix);
+	matrix_scale((const float (*)[N_STATES])B_B_transpose, Q, Q_matrix);
+	matrix_scale((const float (*)[N_STATES])Q_matrix, timestep * timestep, Q_matrix);
+	matrix_scale((const float (*)[N_STATES])I, R, R_matrix);
 	
 	float B_K[N_STATES][N_STATES] = {{0.0f}};
-	matrix_matrix_multiply(B, K, B_K);
+	matrix_matrix_multiply((const float (*)[N_STATES])B, 
+						   (const float (*)[N_STATES])K, 
+						   B_K);
 	
-	matrix_diff(A, B_K, A_minus_BK);
-	matrix_scale(A_minus_BK, timestep, A_minus_BK);
+	matrix_diff((const float (*)[N_STATES])A, 
+				(const float (*)[N_STATES])B_K, 
+				A_minus_BK);
+
+	matrix_scale((const float (*)[N_STATES])A_minus_BK, timestep, A_minus_BK);
 }
 
 bool covariance_matrix_step(void)
@@ -64,44 +73,66 @@ bool covariance_matrix_step(void)
 
 	// P = (F * P * F') + Q
 	float F_P[N_STATES][N_STATES] = {{0.0f}};
-	matrix_matrix_multiply(F, P, F_P);
+	matrix_matrix_multiply((const float (*)[N_STATES])F, 
+						   (const float (*)[N_STATES])P, 
+						   F_P);
 	
 	float F_P_F_transpose[N_STATES][N_STATES] = {{0.0f}};
-	matrix_matrix_multiply(F_P, F_transpose, F_P_F_transpose);
+	matrix_matrix_multiply((const float (*)[N_STATES])F_P, 
+						   (const float (*)[N_STATES])F_transpose, 
+						   F_P_F_transpose);
 	
-	matrix_sum(F_P_F_transpose, Q_matrix, P);
+	matrix_sum((const float (*)[N_STATES])F_P_F_transpose, 
+			   (const float (*)[N_STATES])Q_matrix, 
+			   P);
 	
 	// S = (C * P * C') + R
 	float C_P[N_STATES][N_STATES] = {{0.0f}};
-	matrix_matrix_multiply(C, P, C_P);
+	matrix_matrix_multiply((const float (*)[N_STATES])C, 
+						   (const float (*)[N_STATES])P, 
+						   C_P);
 	
 	float C_P_C_transpose[N_STATES][N_STATES] = {{0.0f}};
-	matrix_matrix_multiply(C_P, C_transpose, C_P_C_transpose);
+	matrix_matrix_multiply((const float (*)[N_STATES])C_P, 
+						   (const float (*)[N_STATES])C_transpose, 
+						   C_P_C_transpose);
 	
 	float S[N_STATES][N_STATES] = {{0.0f}};
-	matrix_sum(C_P_C_transpose, R_matrix, S);
+	matrix_sum((const float (*)[N_STATES])C_P_C_transpose, 
+			   (const float (*)[N_STATES])R_matrix, 
+			   S);
 	
 	// L = P * C' * S_inverse
 	float S_inverse[N_STATES][N_STATES] = {{0.0f}};
 	
-	inverse_valid = matrix_inverse_cholesky(S, S_inverse);
+	inverse_valid = matrix_inverse_cholesky((const float (*)[N_STATES])S, S_inverse);
 	
 	float P_C_transpose[N_STATES][N_STATES] = {{0.0f}};
-	matrix_matrix_multiply(P, C_transpose, P_C_transpose);
+	matrix_matrix_multiply((const float (*)[N_STATES])P, 
+						   (const float (*)[N_STATES])C_transpose, 
+						   P_C_transpose);
 	
-	matrix_matrix_multiply(P_C_transpose, S_inverse, L);
+	matrix_matrix_multiply((const float (*)[N_STATES])P_C_transpose, 
+						   (const float (*)[N_STATES])S_inverse, 
+						   L);
 	
 	// P_next = (I - (L * C)) * P;
 	float L_C[N_STATES][N_STATES] = {{0.0f}};
-	matrix_matrix_multiply(L, C, L_C);
+	matrix_matrix_multiply((const float (*)[N_STATES])L, 
+						   (const float (*)[N_STATES])C, 
+						   L_C);
 	
 	float I_minus_L_C[N_STATES][N_STATES] = {{0.0f}};
-	matrix_diff(I, L_C, I_minus_L_C);
+	matrix_diff((const float (*)[N_STATES])I, 
+				(const float (*)[N_STATES])L_C, 
+				I_minus_L_C);
 	
 	float P_next[N_STATES][N_STATES] = {{0.0f}};
-	matrix_matrix_multiply(I_minus_L_C, P, P_next);
+	matrix_matrix_multiply((const float (*)[N_STATES])I_minus_L_C, 
+						   (const float (*)[N_STATES])P, 
+						   P_next);
 	
-	matrix_assign(P_next, P);
+	matrix_assign((const float (*)[N_STATES])P_next, P);
 
 	return inverse_valid;
 }
@@ -112,21 +143,29 @@ void observer_step(const float measurement[N_STATES], const bool enable, float x
 	
 	// error = y - C * x_hat_prev
 	float C_times_x_hat[N_STATES] = {0.0f};
-	matrix_vector_multiply(C, x_hat, C_times_x_hat);
+	matrix_vector_multiply((const float (*)[N_STATES])C, 
+						   (const float*)x_hat, 
+						   C_times_x_hat);
 
 	float error[N_STATES] = {0.0f};
-	vector_diff(measurement, C_times_x_hat, error);
-	
+	vector_diff((const float*)measurement, 
+				(const float*)C_times_x_hat, 
+				error);
+    
 	// correction = L * error
 	float correction[N_STATES] = {0.0f};
-	matrix_vector_multiply(L, error, correction);
+	matrix_vector_multiply((const float (*)[N_STATES])L, 
+						   (const float*)error, 
+						   correction);
 	
 	// prediction = (A-B*K) * x_hat
 	float prediction[N_STATES] = {0.0f};
-	matrix_vector_multiply(A_minus_BK, x_hat, prediction);
+	matrix_vector_multiply((const float (*)[N_STATES])A_minus_BK, 
+						   (const float*)x_hat, 
+						   prediction);
 
 	float prediction_plus_correction[N_STATES] = {0.0f};
-	vector_sum(prediction, correction, prediction_plus_correction);
+	vector_sum((const float*)prediction, (const float*)correction, prediction_plus_correction);
 	
 	for (int i = 0; i < N_STATES; i++)
 	{
