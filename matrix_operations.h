@@ -29,6 +29,8 @@ void matrix_assign(const float input[N_STATES][N_STATES], float output[N_STATES]
 
 void vector_initialize(float vector[N_STATES], const float init_val);
 
+void vector_assign(const float input[N_STATES], float output[N_STATES]);
+
 void matrix_initialize(float matrix[N_STATES][N_STATES], const float init_val);
 
 void identity(float matrix[N_STATES][N_STATES]);

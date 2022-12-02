@@ -137,6 +137,44 @@ bool covariance_matrix_step(void)
 	return inverse_valid;
 }
 
+void kf_a_priori_state_estimate(const float A_minus_BK[N_STATES][N_STATES], const float timestep, const bool enable, float x_hat[N_STATES])
+{
+	float x_hat_prev[N_STATES];
+	vector_assign((const float*)x_hat, x_hat_prev);
+	
+	matrix_vector_multiply((const float (*)[N_STATES])A_minus_BK, 
+						   (const float*)x_hat_prev, 
+						   prediction);
+	
+	vector_scale((const float*)x_hat_prev, timestep, x_hat_prev);
+	
+	vector_sum((const float*)x_hat, (const float*)x_hat_prev, x_hat);
+	
+	vector_scale((const float*)x_hat, (enable ? 1.0f : 0.0f), x_hat);
+}
+
+void kf_a_posteriori_state_estimate(const float measurement[N_STATES], const float L[N_STATES][N_STATES], const float C[N_STATES][N_STATES], float x_hat[N_STATES])
+{	
+	// error = y - C * x_hat_prev
+	float C_times_x_hat[N_STATES] = {0.0f};
+	matrix_vector_multiply((const float (*)[N_STATES])C, 
+						   (const float*)x_hat, 
+						   C_times_x_hat);
+
+	float error[N_STATES] = {0.0f};
+	vector_diff((const float*)measurement, 
+				(const float*)C_times_x_hat, 
+				error);
+    
+	// correction = L * error
+	float correction[N_STATES] = {0.0f};
+	matrix_vector_multiply((const float (*)[N_STATES])L, 
+						   (const float*)error, 
+						   correction);
+						   
+	vector_sum((const float*)x_hat, correction, x_hat);
+}
+
 void observer_step(const float measurement[N_STATES], const bool enable, float x_hat[N_STATES])
 {	
 	// x_hat[k] = x_hat[k-1] + Ts * ((A-B*K)*x_hat[k-1] + L*(y - C*x_hat[k-1]))

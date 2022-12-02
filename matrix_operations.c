@@ -128,6 +128,14 @@ void vector_initialize(float vector[N_STATES], const float init_val)
 	}
 }
 
+void vector_assign(const float input[N_STATES], float output[N_STATES])
+{
+	for (int i = 0; i < N_STATES; i++)
+	{
+		output[i] = input[i];
+	}
+}
+
 void matrix_initialize(float matrix[N_STATES][N_STATES], const float init_val)
 {
 	for (int i = 0; i < N_STATES; i++)
