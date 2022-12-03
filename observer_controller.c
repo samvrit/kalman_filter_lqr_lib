@@ -9,97 +9,88 @@
 #define STATIC
 #endif
 
-STATIC float L[N_STATES][N_STATES] = {{0.0f}};
-STATIC float F[N_STATES][N_STATES] = {{0.0f}};
-STATIC float F_transpose[N_STATES][N_STATES] = {{0.0f}};
-STATIC float Q_matrix[N_STATES][N_STATES] = {{0.0f}};
-STATIC float R_matrix[N_STATES][N_STATES] = {{0.0f}};
-STATIC float B_transpose[N_STATES][N_STATES] = {{0.0f}};
-STATIC float C_transpose[N_STATES][N_STATES] = {{0.0f}};
-STATIC float P[N_STATES][N_STATES] = {{0.0f}};
-STATIC float A_minus_BK[N_STATES][N_STATES] = {{0.0f}};
-STATIC float I[N_STATES][N_STATES] = {{0.0f}};
-
-void observer_init(float x_hat[N_STATES], const float timestep)
+void observer_init(kf_input_S* kf_input, kf_states_S* kf_states)
 {
-	vector_initialize(x_hat, 0.0f);
+	vector_initialize(kf_states->x_hat, 0.0f);
 	
-	matrix_initialize(L, 0.0f);
-	matrix_initialize(F, 0.0f);
-	matrix_initialize(F_transpose, 0.0f);
-	matrix_initialize(Q_matrix, 0.0f);
-	matrix_initialize(R_matrix, 0.0f);
-	matrix_initialize(B_transpose, 0.0f);
-	matrix_initialize(C_transpose, 0.0f);
-	matrix_initialize(P, 0.0f);
-	matrix_initialize(A_minus_BK, 0.0f);
+	matrix_initialize(kf_states->L, 0.0f);
+	matrix_initialize(kf_states->F, 0.0f);
+	matrix_initialize(kf_states->F_transpose, 0.0f);
+	matrix_initialize(kf_states->Q_matrix, 0.0f);
+	matrix_initialize(kf_states->R_matrix, 0.0f);
+	matrix_initialize(kf_states->C_transpose, 0.0f);
+	matrix_initialize(kf_states->P, 0.0f);
+	matrix_initialize(kf_states->A_minus_BK, 0.0f);
 	
-	identity(I);
+	identity(kf_states->I);
 	
 	// Discretize state transition matrix, ie., F = I + dt*A
-	matrix_scale(A, timestep, F);
-	matrix_sum((const float (*)[N_STATES])F, 
-			   (const float (*)[N_STATES])I, 
-			   F);
+	float A_discrete[N_STATES][N_STATES] = { { 0.0f } };
+	matrix_scale((const float (*)[N_STATES])kf_input->A, kf_input->timestep, A_discrete);
 	
-	matrix_transpose((const float (*)[N_STATES])F, F_transpose);
-	matrix_transpose((const float (*)[N_STATES])B, B_transpose);
-	matrix_transpose((const float (*)[N_STATES])C, C_transpose);
+	matrix_sum((const float (*)[N_STATES])A_discrete, 
+			   (const float (*)[N_STATES])kf_states->I, 
+			   kf_states->F);
+	
+	matrix_transpose((const float (*)[N_STATES])kf_states->F, kf_states->F_transpose);
+	matrix_transpose((const float (*)[N_STATES])kf_input->C, kf_states->C_transpose);
+	
+	float B_transpose[N_STATES][N_STATES] = { { 0.0f } };
+	matrix_transpose((const float (*)[N_STATES])kf_input->B, B_transpose);
 	
 	float B_B_transpose[N_STATES][N_STATES] = {{0.0f}};
-	matrix_matrix_multiply((const float (*)[N_STATES])B, 
+	matrix_matrix_multiply((const float (*)[N_STATES])kf_input->B, 
 						   (const float (*)[N_STATES])B_transpose, 
 						   B_B_transpose);
 	
-	matrix_scale((const float (*)[N_STATES])B_B_transpose, Q, Q_matrix);
-	matrix_scale((const float (*)[N_STATES])Q_matrix, timestep * timestep, Q_matrix);
-	matrix_scale((const float (*)[N_STATES])I, R, R_matrix);
+	matrix_scale((const float (*)[N_STATES])B_B_transpose, kf_input->Q, kf_states->Q_matrix);
+	
+	matrix_scale((const float (*)[N_STATES])kf_states->Q_matrix, (kf_input->timestep * kf_input->timestep), kf_states->Q_matrix);
+	matrix_scale((const float (*)[N_STATES])kf_states->I, kf_input->R, kf_states->R_matrix);
 	
 	float B_K[N_STATES][N_STATES] = {{0.0f}};
-	matrix_matrix_multiply((const float (*)[N_STATES])B, 
-						   (const float (*)[N_STATES])K, 
+	matrix_matrix_multiply((const float (*)[N_STATES])kf_input->B, 
+						   (const float (*)[N_STATES])kf_input->K, 
 						   B_K);
 	
-	matrix_diff((const float (*)[N_STATES])A, 
+	matrix_diff((const float (*)[N_STATES])kf_input->A, 
 				(const float (*)[N_STATES])B_K, 
-				A_minus_BK);
-
-	matrix_scale((const float (*)[N_STATES])A_minus_BK, timestep, A_minus_BK);
+				kf_states->A_minus_BK);
 }
 
-bool covariance_matrix_step(void)
+bool covariance_matrix_step(kf_input_S* kf_input, kf_states_S* kf_states)
 {
 	bool inverse_valid = true;
 
 	// P = (F * P * F') + Q
 	float F_P[N_STATES][N_STATES] = {{0.0f}};
-	matrix_matrix_multiply((const float (*)[N_STATES])F, 
-						   (const float (*)[N_STATES])P, 
+	matrix_matrix_multiply((const float (*)[N_STATES])kf_states->F, 
+						   (const float (*)[N_STATES])kf_states->P, 
 						   F_P);
 	
 	float F_P_F_transpose[N_STATES][N_STATES] = {{0.0f}};
 	matrix_matrix_multiply((const float (*)[N_STATES])F_P, 
-						   (const float (*)[N_STATES])F_transpose, 
+						   (const float (*)[N_STATES])kf_states->F_transpose, 
 						   F_P_F_transpose);
 	
 	matrix_sum((const float (*)[N_STATES])F_P_F_transpose, 
-			   (const float (*)[N_STATES])Q_matrix, 
-			   P);
+			   (const float (*)[N_STATES])kf_states->Q_matrix, 
+			   kf_states->P);
 	
 	// S = (C * P * C') + R
 	float C_P[N_STATES][N_STATES] = {{0.0f}};
-	matrix_matrix_multiply((const float (*)[N_STATES])C, 
-						   (const float (*)[N_STATES])P, 
+	matrix_matrix_multiply((const float (*)[N_STATES])kf_input->C, 
+						   (const float (*)[N_STATES])kf_states->P, 
 						   C_P);
 	
 	float C_P_C_transpose[N_STATES][N_STATES] = {{0.0f}};
 	matrix_matrix_multiply((const float (*)[N_STATES])C_P, 
-						   (const float (*)[N_STATES])C_transpose, 
+						   (const float (*)[N_STATES])kf_states->C_transpose, 
 						   C_P_C_transpose);
 	
 	float S[N_STATES][N_STATES] = {{0.0f}};
 	matrix_sum((const float (*)[N_STATES])C_P_C_transpose, 
-			   (const float (*)[N_STATES])R_matrix, 
+			   (const float (*)[N_STATES])kf_states->R_matrix, 
 			   S);
 	
 	// L = P * C' * S_inverse
@@ -108,57 +99,59 @@ bool covariance_matrix_step(void)
 	inverse_valid = matrix_inverse_cholesky((const float (*)[N_STATES])S, S_inverse);
 	
 	float P_C_transpose[N_STATES][N_STATES] = {{0.0f}};
-	matrix_matrix_multiply((const float (*)[N_STATES])P, 
-						   (const float (*)[N_STATES])C_transpose, 
+	matrix_matrix_multiply((const float (*)[N_STATES])kf_states->P, 
+						   (const float (*)[N_STATES])kf_states->C_transpose, 
 						   P_C_transpose);
 	
 	matrix_matrix_multiply((const float (*)[N_STATES])P_C_transpose, 
 						   (const float (*)[N_STATES])S_inverse, 
-						   L);
+						   kf_states->L);
 	
 	// P_next = (I - (L * C)) * P;
 	float L_C[N_STATES][N_STATES] = {{0.0f}};
-	matrix_matrix_multiply((const float (*)[N_STATES])L, 
-						   (const float (*)[N_STATES])C, 
+	matrix_matrix_multiply((const float (*)[N_STATES])kf_states->L, 
+						   (const float (*)[N_STATES])kf_input->C, 
 						   L_C);
 	
 	float I_minus_L_C[N_STATES][N_STATES] = {{0.0f}};
-	matrix_diff((const float (*)[N_STATES])I, 
+	matrix_diff((const float (*)[N_STATES])kf_states->I, 
 				(const float (*)[N_STATES])L_C, 
 				I_minus_L_C);
 	
 	float P_next[N_STATES][N_STATES] = {{0.0f}};
 	matrix_matrix_multiply((const float (*)[N_STATES])I_minus_L_C, 
-						   (const float (*)[N_STATES])P, 
+						   (const float (*)[N_STATES])kf_states->P, 
 						   P_next);
 	
-	matrix_assign((const float (*)[N_STATES])P_next, P);
+	matrix_assign((const float (*)[N_STATES])P_next, kf_states->P);
 
 	return inverse_valid;
 }
 
-void kf_a_priori_state_estimate(const float A_minus_BK[N_STATES][N_STATES], const float timestep, const bool enable, float x_hat[N_STATES])
+void kf_a_priori_state_estimate(kf_input_S* kf_input, const bool enable, kf_states_S* kf_states)
 {
 	float x_hat_prev[N_STATES];
-	vector_assign((const float*)x_hat, x_hat_prev);
+	vector_assign((const float*)kf_states->x_hat, x_hat_prev);
 	
-	matrix_vector_multiply((const float (*)[N_STATES])A_minus_BK, 
+	float A_minus_BK_discrete[N_STATES][N_STATES];
+	matrix_scale((const float (*)[N_STATES])kf_states->A_minus_BK, kf_input->timestep, A_minus_BK_discrete);
+	
+	float prediction[N_STATES] = {0.0f};
+	matrix_vector_multiply((const float (*)[N_STATES])A_minus_BK_discrete, 
 						   (const float*)x_hat_prev, 
 						   prediction);
+		
+	vector_sum((const float*)x_hat_prev, (const float*)prediction, kf_states->x_hat);
 	
-	vector_scale((const float*)x_hat_prev, timestep, x_hat_prev);
-	
-	vector_sum((const float*)x_hat, (const float*)x_hat_prev, x_hat);
-	
-	vector_scale((const float*)x_hat, (enable ? 1.0f : 0.0f), x_hat);
+	vector_scale((const float*)kf_states->x_hat, (enable ? 1.0f : 0.0f), kf_states->x_hat);
 }
 
-void kf_a_posteriori_state_estimate(const float measurement[N_STATES], const float L[N_STATES][N_STATES], const float C[N_STATES][N_STATES], float x_hat[N_STATES])
+void kf_a_posteriori_state_estimate(const float measurement[N_STATES], kf_input_S* kf_input, kf_states_S* kf_states)
 {	
 	// error = y - C * x_hat_prev
 	float C_times_x_hat[N_STATES] = {0.0f};
-	matrix_vector_multiply((const float (*)[N_STATES])C, 
-						   (const float*)x_hat, 
+	matrix_vector_multiply((const float (*)[N_STATES])kf_input->C, 
+						   (const float*)kf_states->x_hat, 
 						   C_times_x_hat);
 
 	float error[N_STATES] = {0.0f};
@@ -168,53 +161,23 @@ void kf_a_posteriori_state_estimate(const float measurement[N_STATES], const flo
     
 	// correction = L * error
 	float correction[N_STATES] = {0.0f};
-	matrix_vector_multiply((const float (*)[N_STATES])L, 
+	matrix_vector_multiply((const float (*)[N_STATES])kf_states->L, 
 						   (const float*)error, 
 						   correction);
 						   
-	vector_sum((const float*)x_hat, correction, x_hat);
+	vector_sum((const float*)kf_states->x_hat, correction, kf_states->x_hat);
 }
 
-void observer_step(const float measurement[N_STATES], const bool enable, float x_hat[N_STATES])
+void observer_step(const float measurement[N_STATES], const bool enable, kf_input_S* kf_input, kf_states_S* kf_states)
 {	
-	// x_hat[k] = x_hat[k-1] + Ts * ((A-B*K)*x_hat[k-1] + L*(y - C*x_hat[k-1]))
+	kf_a_priori_state_estimate(kf_input, enable, kf_states);
 	
-	// error = y - C * x_hat_prev
-	float C_times_x_hat[N_STATES] = {0.0f};
-	matrix_vector_multiply((const float (*)[N_STATES])C, 
-						   (const float*)x_hat, 
-						   C_times_x_hat);
-
-	float error[N_STATES] = {0.0f};
-	vector_diff((const float*)measurement, 
-				(const float*)C_times_x_hat, 
-				error);
-    
-	// correction = L * error
-	float correction[N_STATES] = {0.0f};
-	matrix_vector_multiply((const float (*)[N_STATES])L, 
-						   (const float*)error, 
-						   correction);
-	
-	// prediction = (A-B*K) * x_hat
-	float prediction[N_STATES] = {0.0f};
-	matrix_vector_multiply((const float (*)[N_STATES])A_minus_BK, 
-						   (const float*)x_hat, 
-						   prediction);
-
-	float prediction_plus_correction[N_STATES] = {0.0f};
-	vector_sum((const float*)prediction, (const float*)correction, prediction_plus_correction);
-	
-	for (int i = 0; i < N_STATES; i++)
-	{
-		x_hat[i] += prediction_plus_correction[i];
-		x_hat[i] = enable ? x_hat[i] : 0.0f;
-	}
+	kf_a_posteriori_state_estimate(measurement, kf_input, kf_states);
 }
 
-float control_output(const float x_hat[N_STATES], const float timestep)
+float control_output(const float x_hat[N_STATES], const float timestep, kf_input_S* kf_input)
 {	
-	const float control_output = -1.0f * dot_product(K[0], x_hat);
+	const float control_output = -1.0f * dot_product(kf_input->K[0], x_hat);
 	
 	const float control_output_final = control_output_process(control_output, x_hat, timestep);
 	
