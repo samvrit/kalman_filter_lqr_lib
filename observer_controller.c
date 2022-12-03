@@ -56,6 +56,8 @@ void observer_init(kf_input_S* kf_input, kf_states_S* kf_states)
 	matrix_diff((const float (*)[N_STATES])kf_input->A, 
 				(const float (*)[N_STATES])B_K, 
 				kf_states->A_minus_BK);
+				
+	matrix_scale((const float (*)[N_STATES])kf_states->A_minus_BK, kf_input->timestep, kf_states->A_minus_BK);
 }
 
 bool covariance_matrix_step(kf_input_S* kf_input, kf_states_S* kf_states)
@@ -130,18 +132,12 @@ bool covariance_matrix_step(kf_input_S* kf_input, kf_states_S* kf_states)
 
 void kf_a_priori_state_estimate(kf_input_S* kf_input, const bool enable, kf_states_S* kf_states)
 {
-	float x_hat_prev[N_STATES];
-	vector_assign((const float*)kf_states->x_hat, x_hat_prev);
-	
-	float A_minus_BK_discrete[N_STATES][N_STATES];
-	matrix_scale((const float (*)[N_STATES])kf_states->A_minus_BK, kf_input->timestep, A_minus_BK_discrete);
-	
 	float prediction[N_STATES] = {0.0f};
-	matrix_vector_multiply((const float (*)[N_STATES])A_minus_BK_discrete, 
-						   (const float*)x_hat_prev, 
+	matrix_vector_multiply((const float (*)[N_STATES])kf_states->A_minus_BK, 
+						   (const float*)kf_states->x_hat, 
 						   prediction);
-		
-	vector_sum((const float*)x_hat_prev, (const float*)prediction, kf_states->x_hat);
+   
+	vector_sum((const float*)kf_states->x_hat, (const float*)prediction, kf_states->x_hat);
 	
 	vector_scale((const float*)kf_states->x_hat, (enable ? 1.0f : 0.0f), kf_states->x_hat);
 }
