@@ -3,13 +3,7 @@
 #include "observer_controller.h"
 #include "matrix_operations.h"
 
-#ifndef UNIT_TEST
-#define STATIC
-#else
-#define STATIC
-#endif
-
-void observer_init(kf_input_S* kf_input, kf_states_S* kf_states)
+void kf_observer_init(kf_input_S* kf_input, kf_states_S* kf_states)
 {
 	vector_initialize(kf_states->x_hat, 0.0f);
 	
@@ -60,7 +54,7 @@ void observer_init(kf_input_S* kf_input, kf_states_S* kf_states)
 	matrix_scale((const float (*)[N_STATES])kf_states->A_minus_BK, kf_input->timestep, kf_states->A_minus_BK);
 }
 
-bool covariance_matrix_step(kf_input_S* kf_input, kf_states_S* kf_states)
+bool kf_covariance_matrix_step(kf_input_S* kf_input, kf_states_S* kf_states)
 {
 	bool inverse_valid = true;
 
@@ -164,18 +158,16 @@ void kf_a_posteriori_state_estimate(const float measurement[N_STATES], kf_input_
 	vector_sum((const float*)kf_states->x_hat, correction, kf_states->x_hat);
 }
 
-void observer_step(const float measurement[N_STATES], const bool enable, kf_input_S* kf_input, kf_states_S* kf_states)
+void kf_observer_step(const float measurement[N_STATES], const bool enable, kf_input_S* kf_input, kf_states_S* kf_states)
 {	
 	kf_a_priori_state_estimate(kf_input, enable, kf_states);
 	
 	kf_a_posteriori_state_estimate(measurement, kf_input, kf_states);
 }
 
-float control_output(const float x_hat[N_STATES], const float timestep, kf_input_S* kf_input)
+float kf_control_output(const float x_hat[N_STATES], const float timestep, kf_input_S* kf_input)
 {	
 	const float control_output = -1.0f * dot_product(kf_input->K[0], x_hat);
 	
-	const float control_output_final = control_output_process(control_output, x_hat, timestep);
-	
-	return control_output_final;
+	return control_output;
 }

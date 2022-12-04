@@ -37,8 +37,6 @@ void identity(float matrix[N_STATES][N_STATES]);
 
 bool matrix_equal_check(float matrix1[N_STATES][N_STATES], float matrix2[N_STATES][N_STATES], const float tolerance);
 
-bool matrix_inverse(const float A[N_STATES][N_STATES], float inverse[N_STATES][N_STATES]);
-
 bool matrix_inverse_cholesky(const float A[N_STATES][N_STATES], float A_inv[N_STATES][N_STATES]);
 
 #endif // MATRIX_OPERATIONS_H_

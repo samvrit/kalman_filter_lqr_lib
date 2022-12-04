@@ -33,18 +33,16 @@ typedef struct
     float x_hat[N_STATES];
 } kf_states_S;
 
-extern float control_output_process(const float computed_output, const float x_hat[N_STATES], const float timestep);
+void kf_observer_init(kf_input_S* kf_input, kf_states_S* kf_states);
 
-void observer_init(kf_input_S* kf_input, kf_states_S* kf_states);
-
-bool covariance_matrix_step(kf_input_S* kf_input, kf_states_S* kf_states);
+bool kf_covariance_matrix_step(kf_input_S* kf_input, kf_states_S* kf_states);
 
 void kf_a_priori_state_estimate(kf_input_S* kf_input, const bool enable, kf_states_S* kf_states);
 
 void kf_a_posteriori_state_estimate(const float measurement[N_STATES], kf_input_S* kf_input, kf_states_S* kf_states);
 
-void observer_step(const float measurement[N_STATES], const bool enable, kf_input_S* kf_input, kf_states_S* kf_states);
+void kf_observer_step(const float measurement[N_STATES], const bool enable, kf_input_S* kf_input, kf_states_S* kf_states);
 
-float control_output(const float x_hat[N_STATES], const float timestep, kf_input_S* kf_input);
+float kf_control_output(const float x_hat[N_STATES], const float timestep, kf_input_S* kf_input);
 
 #endif // OBSERVER_CONTROLLER_H_
