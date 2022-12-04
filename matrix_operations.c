@@ -270,7 +270,9 @@ bool matrix_inverse_cholesky(const float A[N_STATES][N_STATES], float A_inv[N_ST
 		S[i][i] = (1.0f / R[i][i]);
 	}
 	
-	const bool upper_inverse = upper_triangular_inverse(R, S, A_inv);
+	const bool upper_inverse = upper_triangular_inverse((const float (*)[N_STATES])R,
+	                                                    (const float (*)[N_STATES])S,
+	                                                    A_inv);
     
 	return (cholesky && upper_inverse);
 }
