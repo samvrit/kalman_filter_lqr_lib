@@ -136,7 +136,7 @@ void kf_a_priori_state_estimate(kf_input_S* kf_input, const bool enable, kf_stat
 	vector_scale((const float*)kf_states->x_hat, (enable ? 1.0f : 0.0f), kf_states->x_hat);
 }
 
-void kf_a_posteriori_state_estimate(const float measurement[N_STATES], kf_input_S* kf_input, kf_states_S* kf_states)
+void kf_a_posteriori_state_estimate(const float measurement[N_STATES], const bool enable, kf_input_S* kf_input, kf_states_S* kf_states)
 {	
 	// error = y - C * x_hat_prev
 	float C_times_x_hat[N_STATES] = {0.0f};
@@ -156,13 +156,15 @@ void kf_a_posteriori_state_estimate(const float measurement[N_STATES], kf_input_
 						   correction);
 						   
 	vector_sum((const float*)kf_states->x_hat, correction, kf_states->x_hat);
+
+	vector_scale((const float*)kf_states->x_hat, (enable ? 1.0f : 0.0f), kf_states->x_hat);
 }
 
 void kf_observer_step(const float measurement[N_STATES], const bool enable, kf_input_S* kf_input, kf_states_S* kf_states)
 {	
 	kf_a_priori_state_estimate(kf_input, enable, kf_states);
 	
-	kf_a_posteriori_state_estimate(measurement, kf_input, kf_states);
+	kf_a_posteriori_state_estimate(measurement, enable, kf_input, kf_states);
 }
 
 float kf_control_output(const float x_hat[N_STATES], const float timestep, kf_input_S* kf_input)

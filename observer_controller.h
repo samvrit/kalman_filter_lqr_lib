@@ -39,7 +39,7 @@ bool kf_covariance_matrix_step(kf_input_S* kf_input, kf_states_S* kf_states);
 
 void kf_a_priori_state_estimate(kf_input_S* kf_input, const bool enable, kf_states_S* kf_states);
 
-void kf_a_posteriori_state_estimate(const float measurement[N_STATES], kf_input_S* kf_input, kf_states_S* kf_states);
+void kf_a_posteriori_state_estimate(const float measurement[N_STATES], const bool enable, kf_input_S* kf_input, kf_states_S* kf_states);
 
 void kf_observer_step(const float measurement[N_STATES], const bool enable, kf_input_S* kf_input, kf_states_S* kf_states);
 
